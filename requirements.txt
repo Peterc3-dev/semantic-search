@@ -1,0 +1,6 @@
+# Runtime dependencies. Pinned to compatible-release ranges; the project was
+# developed against the lower bounds below. Everything else used by the code
+# (sqlite3, struct, argparse, os, sys, pathlib) is in the Python standard
+# library.
+sentence-transformers>=2.2,<4
+sqlite-vec>=0.1.1,<0.2

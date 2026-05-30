@@ -1,0 +1,23 @@
+[project]
+name = "semantic-search"
+version = "0.1.0"
+description = "Local semantic search over a workspace using sentence-transformer embeddings and sqlite-vec."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { file = "LICENSE" }
+dependencies = [
+    "sentence-transformers>=2.2,<4",
+    "sqlite-vec>=0.1.1,<0.2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff",
+    "pytest",
+]
+
+[tool.ruff]
+line-length = 100
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
