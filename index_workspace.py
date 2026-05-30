@@ -7,14 +7,27 @@ Embeds file chunks and stores in SQLite with sqlite-vec.
 import os
 import sys
 import sqlite3
-import sqlite_vec
 import struct
-import json
 from pathlib import Path
-from sentence_transformers import SentenceTransformer
 
-WORKSPACE_DIR = Path.home() / ".openclaw" / "workspace" / "projects"
-DB_PATH = Path.home() / "semantic-search" / "workspace.db"
+# NOTE: `sqlite_vec` and `sentence_transformers` are heavy, optional-at-import
+# dependencies. They are imported lazily inside the functions that need them so
+# the pure helpers (chunk_text, serialize_vector, deserialize_vector) can be
+# imported and unit-tested without pulling in the model/runtime stack.
+
+# Defaults can be overridden via environment variables without editing code.
+WORKSPACE_DIR = Path(
+    os.environ.get(
+        "SEMANTIC_SEARCH_WORKSPACE",
+        Path.home() / ".openclaw" / "workspace" / "projects",
+    )
+)
+DB_PATH = Path(
+    os.environ.get(
+        "SEMANTIC_SEARCH_DB",
+        Path.home() / "semantic-search" / "workspace.db",
+    )
+)
 CHUNK_SIZE = 500
 EXTENSIONS = {".md", ".txt", ".py", ".js", ".html"}
 MODEL_NAME = "all-MiniLM-L6-v2"
@@ -46,6 +59,8 @@ def deserialize_vector(data: bytes) -> list[float]:
 
 
 def build_db(db_path: Path) -> sqlite3.Connection:
+    import sqlite_vec
+
     db_path.parent.mkdir(parents=True, exist_ok=True)
     db = sqlite3.connect(str(db_path))
     db.enable_load_extension(True)
@@ -71,6 +86,8 @@ def build_db(db_path: Path) -> sqlite3.Connection:
 
 
 def index_workspace(workspace: Path = WORKSPACE_DIR, db_path: Path = DB_PATH):
+    from sentence_transformers import SentenceTransformer
+
     print(f"Loading model: {MODEL_NAME} (CPU)")
     model = SentenceTransformer(MODEL_NAME, device="cpu")
 
@@ -139,6 +156,9 @@ def index_workspace(workspace: Path = WORKSPACE_DIR, db_path: Path = DB_PATH):
 
 def search(query: str, top_k: int = 5, db_path: Path = DB_PATH) -> list[dict]:
     """Search the index and return top_k results with file path and snippet."""
+    import sqlite_vec
+    from sentence_transformers import SentenceTransformer
+
     model = SentenceTransformer(MODEL_NAME, device="cpu")
     query_emb = model.encode([query])[0]
     query_bytes = serialize_vector(query_emb.tolist())

@@ -1,34 +1,52 @@
 #!/usr/bin/env python3
 """
 CLI semantic search tool.
-Usage: python ~/semantic-search/search.py "query string"
+
+Usage:
+    python search.py "query string"
+    python search.py "query string" --db /path/to/workspace.db --top-k 10
 """
 
+import argparse
 import sys
 from pathlib import Path
 
-# Allow running from any directory
-sys.path.insert(0, str(Path.home() / "semantic-search"))
-from index_workspace import search, DB_PATH
+# Allow running from any directory: import the sibling module by its real
+# location rather than a hardcoded home path.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from index_workspace import DB_PATH, search  # noqa: E402
 
 
 def main():
-    if len(sys.argv) < 2:
-        print("Usage: python search.py <query>")
-        print("Example: python search.py 'IDOR vulnerability'")
-        sys.exit(1)
+    parser = argparse.ArgumentParser(
+        description="Semantic search over an indexed workspace."
+    )
+    parser.add_argument("query", nargs="+", help="Search query text.")
+    parser.add_argument(
+        "--db",
+        type=Path,
+        default=DB_PATH,
+        help=f"Path to the SQLite index (default: {DB_PATH}).",
+    )
+    parser.add_argument(
+        "--top-k",
+        type=int,
+        default=5,
+        help="Number of results to return (default: 5).",
+    )
+    args = parser.parse_args()
 
-    query = " ".join(sys.argv[1:])
-    db_path = Path(sys.argv[-1]) if "--db" in sys.argv else DB_PATH
+    query = " ".join(args.query)
+    db_path = args.db
 
     print(f"Searching for: {query!r}\n")
 
-    if not DB_PATH.exists():
-        print(f"ERROR: Database not found at {DB_PATH}")
-        print("Run: python ~/semantic-search/index_workspace.py")
+    if not db_path.exists():
+        print(f"ERROR: Database not found at {db_path}")
+        print("Run: python index_workspace.py")
         sys.exit(1)
 
-    results = search(query, top_k=5)
+    results = search(query, top_k=args.top_k, db_path=db_path)
 
     if not results:
         print("No results found.")
